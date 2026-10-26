@@ -39,7 +39,7 @@ _To be decided in Step 2._
 ## Progress
 
 - [x] Step 0: Scaffold Next.js + Tailwind, AGENTS.md
-- [ ] Step 1: Explore the Open Library API
+- [x] Step 1: Explore the Open Library API (see `docs/open-library-api.md`)
 - [ ] Step 2: Data model
 - [ ] Step 3: Protect keys (deny rule, `.env.local`)
 - [ ] Step 4: Clerk sign-in
