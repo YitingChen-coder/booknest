@@ -89,7 +89,7 @@ saved_books (user_id = user_123) ── 1 : many ──▶ book_notes (user_id =
 - [x] Step 2: Data model
 - [x] Step 3: Protect keys (deny rule, `.env.local`)
 - [x] Step 4: Clerk sign-in
-- [ ] Step 5: Supabase + RLS, connected to Clerk
-- [ ] Step 6: Search + shelf UI, server-side API route
+- [x] Step 5: Supabase + RLS, connected to Clerk (project `cuolcyayyklstyzbjmpb`, Clerk third-party auth)
+- [x] Step 6: Search + shelf UI, server-side API route
 - [ ] Step 7: Playwright two-user test (fail first, then pass)
 - [ ] Step 8: `/security-review`, merge, deploy on Vercel
