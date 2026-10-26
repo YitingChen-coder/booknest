@@ -7,7 +7,7 @@ type Props = {
 };
 
 const SIZES = {
-  sm: { w: 64, h: 96, img: "S" },
+  sm: { w: 64, h: 96, img: "M" },
   md: { w: 112, h: 168, img: "M" },
   lg: { w: 180, h: 270, img: "L" },
 } as const;

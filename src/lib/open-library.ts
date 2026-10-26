@@ -60,13 +60,34 @@ async function getJson(path: string): Promise<{ status: number; body: unknown } 
   }
 }
 
-export async function searchBooks(query: string, page = 1): Promise<SearchResult> {
-  const params = new URLSearchParams({
-    q: query,
-    fields: SEARCH_FIELDS,
-    limit: String(PAGE_SIZE),
-    page: String(page),
-  });
+/** Subjects offered for browsing. Keys are Open Library subject names. */
+export const SUBJECTS = {
+  fantasy: "Fantasy",
+  science_fiction: "Science fiction",
+  mystery: "Mystery",
+  romance: "Romance",
+  historical_fiction: "Historical fiction",
+  biography: "Biography",
+  poetry: "Poetry",
+  philosophy: "Philosophy",
+} as const;
+export type Subject = keyof typeof SUBJECTS;
+
+export function isSubject(value: unknown): value is Subject {
+  return typeof value === "string" && value in SUBJECTS;
+}
+
+/** Search by free text, or browse a subject (most highly rated first). */
+export async function searchBooks(
+  search: { q: string } | { subject: Subject },
+  page = 1,
+): Promise<SearchResult> {
+  const params = new URLSearchParams({ fields: SEARCH_FIELDS, limit: String(PAGE_SIZE), page: String(page) });
+  if ("q" in search) params.set("q", search.q);
+  else {
+    params.set("subject", search.subject);
+    params.set("sort", "rating");
+  }
   const res = await getJson(`/search.json?${params}`);
   if (!res || res.status !== 200 || !res.body) return { ok: false, reason: "unavailable" };
 

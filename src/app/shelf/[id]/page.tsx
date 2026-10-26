@@ -2,9 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { addNote, deleteNote, removeBookAndReturn } from "@/app/actions";
+import { addNote, deleteNote } from "@/app/actions";
 import { BookCover } from "@/components/book-cover";
 import { BookControls } from "@/components/book-controls";
+import { RemoveBookButton } from "@/components/remove-book-button";
+import { formatDate } from "@/lib/format";
 import { getWorkDetails } from "@/lib/open-library";
 import { getSavedBook, listNotes } from "@/lib/shelf";
 
@@ -33,6 +35,10 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
           <p className="text-muted">
             {book.authors.join(", ") || "Unknown author"}
             {book.first_publish_year && ` · ${book.first_publish_year}`}
+          </p>
+          <p className="text-xs text-muted">
+            Added {formatDate(book.created_at)}
+            {book.finished_at && ` · Finished ${formatDate(book.finished_at)}`}
           </p>
           <div className="mt-2">
             <BookControls bookId={book.id} status={book.status} rating={book.rating} />
@@ -81,7 +87,7 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
                 <p className="whitespace-pre-wrap">{note.body}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
                   <time dateTime={note.created_at}>
-                    {new Date(note.created_at).toLocaleDateString("en-US", { dateStyle: "medium" })}
+                    {formatDate(note.created_at)}
                   </time>
                   <form action={deleteNote.bind(null, book.id, note.id)}>
                     <button className="hover:text-danger">Delete</button>
@@ -93,9 +99,9 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
         )}
       </section>
 
-      <form action={removeBookAndReturn.bind(null, book.id)} className="mt-12 border-t border-border pt-6">
-        <button className="text-sm text-danger hover:underline">Remove from my shelf</button>
-      </form>
+      <div className="mt-12 border-t border-border pt-6">
+        <RemoveBookButton bookId={book.id} title={book.title} />
+      </div>
     </div>
   );
 }
@@ -109,7 +115,7 @@ async function About({ workKey }: { workKey: string }) {
 
   return (
     <section className="mt-8">
-      {details.description && <p className="whitespace-pre-line leading-relaxed">{details.description.slice(0, 1200)}</p>}
+      {details.description && <p className="whitespace-pre-line leading-relaxed">{shorten(details.description, 1200)}</p>}
       {details.subjects.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2">
           {details.subjects.map((s) => (
@@ -121,4 +127,12 @@ async function About({ workKey }: { workKey: string }) {
       )}
     </section>
   );
+}
+
+/** Cut long text at the last sentence end before `max` characters. */
+function shorten(text: string, max: number) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(".\n"));
+  return `${end > max / 2 ? cut.slice(0, end + 1) : cut.trimEnd()} …`;
 }

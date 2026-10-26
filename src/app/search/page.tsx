@@ -3,20 +3,32 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BookCover } from "@/components/book-cover";
 import { SaveButton } from "@/components/save-button";
-import { PAGE_SIZE, searchBooks } from "@/lib/open-library";
+import { isSubject, PAGE_SIZE, searchBooks, SUBJECTS, type Subject } from "@/lib/open-library";
 import { getSavedIds } from "@/lib/shelf";
 
-type Props = { searchParams: Promise<{ q?: string; page?: string }> };
+type Props = { searchParams: Promise<{ q?: string; subject?: string; page?: string }> };
+
+type Search = { q: string } | { subject: Subject };
+
+function searchHref(search: Search, page = 1) {
+  const params = new URLSearchParams("q" in search ? { q: search.q } : { subject: search.subject });
+  if (page > 1) params.set("page", String(page));
+  return `/search?${params}`;
+}
 
 export default async function SearchPage({ searchParams }: Props) {
   await auth.protect();
   const params = await searchParams;
   const q = (params.q ?? "").trim().slice(0, 200);
+  const subject = isSubject(params.subject) ? params.subject : null;
   const page = Math.min(Math.max(Number.parseInt(params.page ?? "1", 10) || 1, 1), 50);
+  const search: Search | null = q ? { q } : subject ? { subject } : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="font-serif text-3xl font-semibold">Search books</h1>
+      <h1 className="font-serif text-3xl font-semibold">
+        {subject && !q ? `Browse: ${SUBJECTS[subject]}` : "Search books"}
+      </h1>
 
       <form action="/search" className="mt-6 flex gap-2" role="search">
         <label htmlFor="q" className="sr-only">
@@ -29,7 +41,7 @@ export default async function SearchPage({ searchParams }: Props) {
           defaultValue={q}
           placeholder="Try “Le Guin” or “The Remains of the Day”"
           maxLength={200}
-          autoFocus={!q}
+          autoFocus={!search}
           className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
         <button className="rounded-lg bg-accent px-5 py-2.5 font-medium text-background hover:opacity-90">
@@ -37,27 +49,53 @@ export default async function SearchPage({ searchParams }: Props) {
         </button>
       </form>
 
-      {q ? (
+      <SubjectChips active={q ? null : subject} />
+
+      {search ? (
         // A new key restarts the loading state for every new search.
-        <Suspense key={`${q}:${page}`} fallback={<ResultsSkeleton />}>
-          <Results q={q} page={page} />
+        <Suspense key={searchHref(search, page)} fallback={<ResultsSkeleton />}>
+          <Results search={search} page={page} />
         </Suspense>
       ) : (
-        <p className="mt-10 text-muted">Search by title, author, or both. Results come from Open Library.</p>
+        <p className="mt-10 text-muted">
+          Search by title or author, or pick a subject above to see its most highly rated books. Results come from
+          Open Library.
+        </p>
       )}
     </div>
   );
 }
 
-async function Results({ q, page }: { q: string; page: number }) {
-  const result = await searchBooks(q, page);
+function SubjectChips({ active }: { active: Subject | null }) {
+  return (
+    <nav className="mt-4 flex flex-wrap gap-2 text-sm" aria-label="Browse by subject">
+      <span className="py-1 text-muted">Browse:</span>
+      {(Object.keys(SUBJECTS) as Subject[]).map((key) => (
+        <Link
+          key={key}
+          href={searchHref({ subject: key })}
+          aria-current={active === key ? "page" : undefined}
+          className={`rounded-full border px-3 py-1 ${
+            active === key ? "border-accent bg-accent text-background" : "border-border hover:bg-accent-soft"
+          }`}
+        >
+          {SUBJECTS[key]}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+async function Results({ search, page }: { search: Search; page: number }) {
+  const result = await searchBooks(search, page);
+  const label = "q" in search ? `“${search.q}”` : SUBJECTS[search.subject];
 
   if (!result.ok) {
     return (
       <StateBox title="Open Library isn’t responding right now">
         <p>This is on their side, not yours. Your shelf still works while search is down.</p>
         <div className="mt-4 flex gap-3">
-          <Link href={`/search?q=${encodeURIComponent(q)}&page=${page}`} className="font-medium text-accent underline">
+          <Link href={searchHref(search, page)} className="font-medium text-accent underline">
             Try again
           </Link>
           <Link href="/shelf" className="font-medium text-accent underline">
@@ -70,7 +108,7 @@ async function Results({ q, page }: { q: string; page: number }) {
 
   if (result.books.length === 0) {
     return (
-      <StateBox title={`No books found for “${q}”`}>
+      <StateBox title={`No books found for ${label}`}>
         <p>Check the spelling, try fewer words, or search by the author’s last name.</p>
       </StateBox>
     );
@@ -89,7 +127,8 @@ async function Results({ q, page }: { q: string; page: number }) {
   return (
     <section className="mt-8" aria-live="polite">
       <p className="text-sm text-muted">
-        {result.total.toLocaleString()} results{lastPage > 1 && ` · page ${page} of ${lastPage}`}
+        {result.total.toLocaleString()} {"q" in search ? "results" : "books, most highly rated first"}
+        {lastPage > 1 && ` · page ${page} of ${lastPage}`}
       </p>
       {shelfError && (
         <p role="alert" className="mt-3 rounded-md border border-danger/40 px-3 py-2 text-sm text-danger">
@@ -123,14 +162,14 @@ async function Results({ q, page }: { q: string; page: number }) {
       {lastPage > 1 && (
         <nav className="mt-8 flex justify-between text-sm" aria-label="Pages">
           {page > 1 ? (
-            <Link href={`/search?q=${encodeURIComponent(q)}&page=${page - 1}`} className="font-medium text-accent">
+            <Link href={searchHref(search, page - 1)} className="font-medium text-accent">
               ← Previous
             </Link>
           ) : (
             <span />
           )}
           {page < lastPage && (
-            <Link href={`/search?q=${encodeURIComponent(q)}&page=${page + 1}`} className="font-medium text-accent">
+            <Link href={searchHref(search, page + 1)} className="font-medium text-accent">
               Next →
             </Link>
           )}

@@ -18,6 +18,7 @@ async function emptyShelf(page: Page) {
     if (before === 0) return;
     await books.first().getByRole("link").nth(1).click();
     await page.getByRole("button", { name: "Remove from my shelf" }).click();
+    await page.getByRole("button", { name: "Yes, remove" }).click();
     await page.waitForURL("**/shelf");
     if ((await books.count()) >= before) return;
   }

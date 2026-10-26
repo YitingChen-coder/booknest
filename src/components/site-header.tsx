@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { NavLink } from "@/components/nav-link";
 
 export function SiteHeader() {
   return (
@@ -11,12 +12,8 @@ export function SiteHeader() {
 
         <nav className="flex items-center gap-1 text-sm sm:gap-3">
           <Show when="signed-in">
-            <Link href="/search" className="rounded-md px-2 py-1.5 hover:bg-accent-soft">
-              Search
-            </Link>
-            <Link href="/shelf" className="rounded-md px-2 py-1.5 hover:bg-accent-soft">
-              My shelf
-            </Link>
+            <NavLink href="/search">Search</NavLink>
+            <NavLink href="/shelf">My shelf</NavLink>
             <UserButton />
           </Show>
           <Show when="signed-out">

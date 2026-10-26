@@ -24,6 +24,7 @@ export type SavedBook = {
   status: Status;
   rating: number | null;
   created_at: string;
+  finished_at: string | null;
 };
 
 export type BookNote = {
@@ -32,18 +33,58 @@ export type BookNote = {
   created_at: string;
 };
 
-const BOOK_COLUMNS = "id, work_key, title, authors, cover_id, first_publish_year, status, rating, created_at";
+export const SORTS = {
+  recent: "Recently added",
+  title: "Title",
+  rating: "My rating",
+} as const;
+export type Sort = keyof typeof SORTS;
+
+export function isSort(value: unknown): value is Sort {
+  return typeof value === "string" && value in SORTS;
+}
+
+export type ShelfStats = {
+  total: number;
+  byStatus: Record<Status, number>;
+  finishedThisYear: number;
+};
+
+const BOOK_COLUMNS =
+  "id, work_key, title, authors, cover_id, first_publish_year, status, rating, created_at, finished_at";
 
 // No user_id filters below: row-level security in Supabase only returns the
 // signed-in person's rows.
 
-export async function listShelf(status?: Status): Promise<SavedBook[]> {
+export async function listShelf(
+  options: { status?: Status; sort?: Sort; limit?: number } = {},
+): Promise<SavedBook[]> {
+  const { status, sort = "recent", limit } = options;
   const supabase = await createSupabaseClient();
-  let query = supabase.from("saved_books").select(BOOK_COLUMNS).order("created_at", { ascending: false });
+  let query = supabase.from("saved_books").select(BOOK_COLUMNS);
   if (status) query = query.eq("status", status);
+  if (sort === "title") query = query.order("title", { ascending: true });
+  else if (sort === "rating") query = query.order("rating", { ascending: false, nullsFirst: false });
+  query = query.order("created_at", { ascending: false });
+  if (limit) query = query.limit(limit);
+
   const { data, error } = await query;
   if (error) throw new Error(`Could not load shelf: ${error.message}`);
   return data as SavedBook[];
+}
+
+export async function getShelfStats(): Promise<ShelfStats> {
+  const supabase = await createSupabaseClient();
+  const { data, error } = await supabase.from("saved_books").select("status, finished_at");
+  if (error) throw new Error(`Could not load shelf: ${error.message}`);
+
+  const year = new Date().getFullYear();
+  const stats: ShelfStats = { total: data.length, byStatus: { want: 0, reading: 0, read: 0 }, finishedThisYear: 0 };
+  for (const row of data) {
+    if (isStatus(row.status)) stats.byStatus[row.status] += 1;
+    if (row.finished_at && new Date(row.finished_at).getFullYear() === year) stats.finishedThisYear += 1;
+  }
+  return stats;
 }
 
 /** Map of work_key -> saved book id, for the given Open Library works. */
