@@ -147,3 +147,16 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Next.js / Vercel
+.vercel
+next-env.d.ts
+*.tsbuildinfo
+
+# Playwright
+/playwright-report/
+/test-results/
+/playwright/.auth/
+
+# Local scratch
+.DS_Store
