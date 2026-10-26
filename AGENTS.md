@@ -51,6 +51,7 @@ Two tables. Book details from Open Library are copied into `saved_books` at save
 | `first_publish_year` | `integer` | nullable |
 | `status` | `text` not null | `want` \| `reading` \| `read`, default `want` |
 | `rating` | `smallint` | nullable, 1–5 |
+| `finished_at` | `timestamptz` | nullable; set by a trigger when status becomes `read`, cleared otherwise |
 | `created_at`, `updated_at` | `timestamptz` | default `now()` |
 
 Unique `(user_id, work_key)`: a person can save a book once; two people can each save the same book.
@@ -90,6 +91,6 @@ saved_books (user_id = user_123) ── 1 : many ──▶ book_notes (user_id =
 - [x] Step 3: Protect keys (deny rule, `.env.local`)
 - [x] Step 4: Clerk sign-in
 - [x] Step 5: Supabase + RLS, connected to Clerk (project `cuolcyayyklstyzbjmpb`, Clerk third-party auth)
-- [x] Step 6: Search + shelf UI, server-side API route
+- [x] Step 6: Search + subject browsing + shelf UI; Open Library called from server components
 - [x] Step 7: Playwright two-user test (fail first, then pass; see `docs/testing.md`)
 - [ ] Step 8: `/security-review`, merge, deploy on Vercel
