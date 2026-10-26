@@ -160,3 +160,4 @@ next-env.d.ts
 
 # Local scratch
 .DS_Store
+.clerk/
