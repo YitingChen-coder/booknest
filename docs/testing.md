@@ -26,3 +26,15 @@ Migration `20261025160000_break_saved_books_select_policy.sql` replaced the `sav
 The app code didn't change. It never filters by `user_id` itself; it relies on RLS. With the policy gone, Supabase returned A's row to B.
 
 The first broken run failed only by timing out: the test's clean-up step saw other people's books that it couldn't delete (the delete policy was still correct). The test was rewritten to check the other shelf right after each save, with a message that names the leak.
+
+## Fixed: policy restored
+
+Migration `20261025163000_restore_saved_books_select_policy.sql` put the owner-only rule back: `using ((select auth.jwt() ->> 'sub') = user_id)`. The Supabase security advisor reports no findings.
+
+```
+✓  [setup] › e2e/global.setup.ts › get a Clerk testing token
+✓  [setup] › e2e/global.setup.ts › make sure both test users exist
+✓  [chromium] › e2e/shelf-isolation.spec.ts › two readers cannot see each other's shelves
+✓  [chromium] › e2e/shelf-isolation.spec.ts › a signed-out visitor sees no shelf
+4 passed
+```
