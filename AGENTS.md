@@ -34,13 +34,59 @@ Course: Design, Build, Ship (MPCS 51238), Assignment 4: Full Stack App.
 
 ## Data model
 
-_To be decided in Step 2._
+Two tables. Book details from Open Library are copied into `saved_books` at save time, so the shelf loads from Supabase alone (no API call needed to show it, and it still works if Open Library is down).
+
+`user_id` is the Clerk user id (`auth.jwt() ->> 'sub'`, a text value like `user_2abc...`), filled in by the database default, never trusted from the browser.
+
+### `saved_books`: one row per book a person put on their shelf
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK | `gen_random_uuid()` |
+| `user_id` | `text` not null | default `auth.jwt() ->> 'sub'` |
+| `work_key` | `text` not null | Open Library work id, e.g. `OL27482W` |
+| `title` | `text` not null | |
+| `authors` | `text[]` not null | default `{}` |
+| `cover_id` | `integer` | nullable |
+| `first_publish_year` | `integer` | nullable |
+| `status` | `text` not null | `want` \| `reading` \| `read`, default `want` |
+| `rating` | `smallint` | nullable, 1–5 |
+| `created_at`, `updated_at` | `timestamptz` | default `now()` |
+
+Unique `(user_id, work_key)`: a person can save a book once; two people can each save the same book.
+
+### `book_notes`: short notes a person writes about a saved book
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK | |
+| `user_id` | `text` not null | default `auth.jwt() ->> 'sub'` |
+| `book_id` | `uuid` not null | FK → `saved_books.id`, `on delete cascade` |
+| `body` | `text` not null | 1–2000 chars |
+| `created_at` | `timestamptz` | default `now()` |
+
+### Row-level security
+
+RLS is enabled on both tables, with policies for the `authenticated` role only:
+
+- select / update / delete: `user_id = auth.jwt() ->> 'sub'`
+- insert: `with check (user_id = auth.jwt() ->> 'sub')`
+- `book_notes` insert also checks the `book_id` belongs to a `saved_books` row of the same user.
+
+The `anon` role has no policies, so a signed-out request reads nothing.
+
+```
+Clerk user (sub = user_123)
+   │ owns many
+   ▼
+saved_books (user_id = user_123) ── 1 : many ──▶ book_notes (user_id = user_123, book_id)
+```
 
 ## Progress
 
 - [x] Step 0: Scaffold Next.js + Tailwind, AGENTS.md
 - [x] Step 1: Explore the Open Library API (see `docs/open-library-api.md`)
-- [ ] Step 2: Data model
+- [x] Step 2: Data model
 - [ ] Step 3: Protect keys (deny rule, `.env.local`)
 - [ ] Step 4: Clerk sign-in
 - [ ] Step 5: Supabase + RLS, connected to Clerk
