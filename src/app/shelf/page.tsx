@@ -55,7 +55,7 @@ export default async function ShelfPage({ searchParams }: Props) {
                 <BookCover coverId={book.cover_id} title={book.title} />
               </Link>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <Link href={`/shelf/${book.id}`} className="font-serif text-lg font-semibold leading-snug hover:underline">
+                <Link href={`/shelf/${book.id}`} className="font-serif text-lg font-semibold leading-snug hover:underline" data-testid="shelf-book-title">
                   {book.title}
                 </Link>
                 <p className="text-sm text-muted">{book.authors.slice(0, 2).join(", ") || "Unknown author"}</p>
