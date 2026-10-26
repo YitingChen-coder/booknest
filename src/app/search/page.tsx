@@ -107,7 +107,7 @@ async function Results({ q, page }: { q: string; page: number }) {
               <p className="mt-1 text-xs text-muted">
                 {[
                   book.firstPublishYear && `First published ${book.firstPublishYear}`,
-                  book.editionCount && `${book.editionCount} editions`,
+                  book.editionCount && `${book.editionCount} edition${book.editionCount === 1 ? "" : "s"}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

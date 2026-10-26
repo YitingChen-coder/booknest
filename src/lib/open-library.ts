@@ -96,7 +96,14 @@ export async function getWorkDetails(workKey: string): Promise<WorkDetails | nul
   if (!res || !res.body) return null;
 
   const body = res.body as { description?: string | { value?: string }; subjects?: string[] };
-  const description =
-    typeof body.description === "string" ? body.description : body.description?.value ?? null;
+  const raw = typeof body.description === "string" ? body.description : body.description?.value ?? null;
+  // Descriptions are user-edited Markdown-ish text; drop bold/italic markers and link syntax.
+  const description = raw
+    ? raw
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1")
+        .replace(/-{3,}[\s\S]*$/, "") // trailing "----------" source/footnote blocks
+        .trim() || null
+    : null;
   return { description, subjects: (body.subjects ?? []).slice(0, 8) };
 }
