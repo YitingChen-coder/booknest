@@ -74,7 +74,7 @@ export const SUBJECTS = {
 export type Subject = keyof typeof SUBJECTS;
 
 export function isSubject(value: unknown): value is Subject {
-  return typeof value === "string" && value in SUBJECTS;
+  return typeof value === "string" && Object.hasOwn(SUBJECTS, value);
 }
 
 /** Search by free text, or browse a subject (most highly rated first). */

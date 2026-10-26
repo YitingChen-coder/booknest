@@ -41,7 +41,7 @@ export const SORTS = {
 export type Sort = keyof typeof SORTS;
 
 export function isSort(value: unknown): value is Sort {
-  return typeof value === "string" && value in SORTS;
+  return typeof value === "string" && Object.hasOwn(SORTS, value);
 }
 
 export type ShelfStats = {
