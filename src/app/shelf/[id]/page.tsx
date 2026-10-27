@@ -1,13 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { addNote, deleteNote } from "@/app/actions";
+import { addNote, deleteNote, unshareBook } from "@/app/actions";
 import { BookCover } from "@/components/book-cover";
 import { BookGridSkeleton } from "@/components/book-grid";
 import { BookSuggestions } from "@/components/book-suggestions";
 import { BookControls } from "@/components/book-controls";
 import { RemoveBookButton } from "@/components/remove-book-button";
+import { ShareBookForm } from "@/components/share-book-form";
+import { getLastDisplayName, getShareForBook } from "@/lib/club";
 import { formatDate } from "@/lib/format";
 import { getAuthorBooks, getWorkDetails } from "@/lib/open-library";
 import { getSavedBook, listNotes } from "@/lib/shelf";
@@ -15,14 +17,14 @@ import { getSavedBook, listNotes } from "@/lib/shelf";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
-  await auth.protect();
+  const { userId } = await auth.protect();
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
   // RLS returns nothing for someone else's book, so it looks the same as a missing one.
   const book = await getSavedBook(id);
   if (!book) notFound();
-  const notes = await listNotes(book.id);
+  const [notes, share] = await Promise.all([listNotes(book.id), getShareForBook(book.id)]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -101,6 +103,32 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
         )}
       </section>
 
+      <section className="mt-12">
+        <h2 className="font-serif text-xl font-semibold">Book club</h2>
+        {share ? (
+          <div className="mt-3 rounded-xl border border-accent/40 bg-accent-soft p-4" data-testid="my-share">
+            <p className="text-sm font-medium text-accent">
+              ✓ Shared to the{" "}
+              <Link href="/club" className="underline">
+                book club
+              </Link>{" "}
+              as {share.display_name} on {formatDate(share.created_at)}
+            </p>
+            {share.comment && <blockquote className="mt-2 border-l-2 border-accent/50 pl-3 text-sm">{share.comment}</blockquote>}
+            <form action={unshareBook.bind(null, share.id, book.id)} className="mt-3">
+              <button className="text-sm text-muted hover:text-danger">Stop sharing</button>
+            </form>
+          </div>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-muted">Recommend this book to other BookNest readers.</p>
+            <Suspense fallback={null}>
+              <ShareFormWithName bookId={book.id} userId={userId} />
+            </Suspense>
+          </>
+        )}
+      </section>
+
       {book.authors[0] && (
         <section className="mt-12">
           <h2 className="font-serif text-xl font-semibold">More by {book.authors[0]}</h2>
@@ -118,6 +146,16 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
       </div>
     </div>
   );
+}
+
+/** Prefill the name with the one used last time, or the Clerk first name / username. */
+async function ShareFormWithName({ bookId, userId }: { bookId: string; userId: string }) {
+  let name = await getLastDisplayName(userId);
+  if (!name) {
+    const user = await currentUser();
+    name = user?.firstName ?? user?.username ?? "";
+  }
+  return <ShareBookForm bookId={bookId} defaultName={name.slice(0, 40)} />;
 }
 
 async function About({ workKey }: { workKey: string }) {

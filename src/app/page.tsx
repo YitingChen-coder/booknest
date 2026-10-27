@@ -4,12 +4,14 @@ import { Suspense } from "react";
 import { BookCover } from "@/components/book-cover";
 import { BookGrid, BookGridSkeleton } from "@/components/book-grid";
 import { BookSuggestions } from "@/components/book-suggestions";
+import { ClubCard } from "@/components/club-card";
+import { listClub } from "@/lib/club";
 import { getTrending } from "@/lib/open-library";
-import { getShelfStats, listShelf, STATUS_LABELS, STATUSES } from "@/lib/shelf";
+import { getSavedIds, getShelfStats, listShelf, STATUS_LABELS, STATUSES } from "@/lib/shelf";
 
 export default async function Home() {
   const { userId } = await auth();
-  return userId ? <Overview /> : <Landing />;
+  return userId ? <Overview userId={userId} /> : <Landing />;
 }
 
 function Landing() {
@@ -40,11 +42,12 @@ function Landing() {
         </Suspense>
       </div>
 
-      <ul className="mt-16 grid gap-4 sm:grid-cols-3">
+      <ul className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Search & browse", "Look up any title or author, or browse a subject’s best-rated books."],
           ["Save", "Put books on your shelf: want to read, reading, or read."],
           ["Remember", "Add notes and ratings. They’re there on any device you sign in from."],
+          ["Book club", "Share the books you love with other readers. Your shelf stays private."],
         ].map(([title, body]) => (
           <li key={title} className="rounded-xl border border-border bg-surface p-5">
             <h2 className="font-serif text-lg font-semibold">{title}</h2>
@@ -78,12 +81,14 @@ async function HeroCovers() {
   );
 }
 
-async function Overview() {
-  const [stats, reading, recent] = await Promise.all([
+async function Overview({ userId }: { userId: string }) {
+  const [stats, reading, recent, club] = await Promise.all([
     getShelfStats(),
     listShelf({ status: "reading", limit: 3 }),
     listShelf({ limit: 6 }),
+    listClub(4),
   ]);
+  const clubSavedIds = await getSavedIds(club.map((s) => s.work_key));
   const year = new Date().getFullYear();
 
   return (
@@ -172,6 +177,31 @@ async function Overview() {
           />
         </section>
       )}
+
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-serif text-xl font-semibold">From the book club</h2>
+          <Link href="/club" className="text-sm font-medium text-accent">
+            See all
+          </Link>
+        </div>
+        {club.length === 0 ? (
+          <div className="mt-3 rounded-xl border border-dashed border-border p-6 text-muted">
+            No one has shared a book yet. Open a book on your shelf and share it with the club.
+          </div>
+        ) : (
+          <ul className="mt-3 grid gap-4 sm:grid-cols-2">
+            {club.map((share) => (
+              <ClubCard
+                key={share.id}
+                share={share}
+                mine={share.user_id === userId}
+                savedId={clubSavedIds.get(share.work_key) ?? null}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-10">
         <div className="flex items-baseline justify-between gap-4">

@@ -83,6 +83,7 @@ export async function removeBook(bookId: string): Promise<ActionResult> {
 
   revalidatePath("/shelf");
   revalidatePath("/search");
+  revalidatePath("/club");
   return { ok: true, data: undefined };
 }
 
@@ -136,4 +137,39 @@ export async function deleteNote(bookId: string, noteId: string): Promise<void> 
 export async function removeBookAndReturn(bookId: string): Promise<void> {
   const result = await removeBook(bookId);
   if (result.ok) redirect("/shelf");
+}
+
+export type ShareState = { error: string | null };
+
+/** Share a book from your own shelf to the book club. */
+export async function shareBook(bookId: string, _prev: ShareState, formData: FormData): Promise<ShareState> {
+  await requireUser();
+  if (!UUID_RE.test(bookId)) return { error: "Unknown book." };
+  const displayName = cleanText(formData.get("display_name"), 40);
+  if (!displayName) return { error: "Add a name (up to 40 characters) so others know who shared it." };
+  const rawComment = formData.get("comment");
+  const comment = typeof rawComment === "string" && rawComment.trim() ? cleanText(rawComment, 280) : null;
+  if (typeof rawComment === "string" && rawComment.trim() && !comment) {
+    return { error: "Keep your note to 280 characters." };
+  }
+
+  // Only book_id goes in from here; the database copies title, authors and
+  // cover from your own saved book and fills user_id from your token.
+  const supabase = await createSupabaseClient();
+  const { error } = await supabase.from("shared_books").insert({ book_id: bookId, display_name: displayName, comment });
+  if (error && error.code !== "23505") return { error: "Couldn't share this book. Please try again." };
+
+  revalidatePath(`/shelf/${bookId}`);
+  revalidatePath("/club");
+  return { error: null };
+}
+
+export async function unshareBook(shareId: string, bookId: string | null): Promise<void> {
+  await requireUser();
+  if (!UUID_RE.test(shareId) || (bookId !== null && !UUID_RE.test(bookId))) return;
+
+  const supabase = await createSupabaseClient();
+  await supabase.from("shared_books").delete().eq("id", shareId);
+  revalidatePath("/club");
+  if (bookId) revalidatePath(`/shelf/${bookId}`);
 }

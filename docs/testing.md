@@ -42,3 +42,7 @@ Migration `20261025163000_restore_saved_books_select_policy.sql` put the owner-o
 ## Against the deployed site
 
 `E2E_BASE_URL=https://booknest-two-eta.vercel.app npx playwright test`: 4 passed. The first run failed because the live site is slower, so the test counted books while the loading skeleton was still showing and skipped emptying the shelf. `emptyShelf` now waits for the "My shelf" heading before counting.
+
+## Book club test (`e2e/book-club.spec.ts`)
+
+The book club is the one place data is shared, so it has its own test. A saves a book, writes a private note, and shares the book with a comment. B must see the share in the club with A's name and comment, but not A's note, no "Stop sharing" button on A's share, and the book must not appear on B's shelf. B saving it from the club creates B's own copy. When A stops sharing, the book leaves the club. A signed-out visitor is sent to sign-in. All 6 tests pass locally.

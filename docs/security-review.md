@@ -23,3 +23,17 @@ What was checked:
 |---|---|---|
 | `isSubject` / `isSort` used `value in OBJ`, so inherited keys like `constructor` passed the check | Odd page heading, harmless value sent to Open Library; no security impact | Changed to `Object.hasOwn(OBJ, value)` |
 | A client calling PostgREST directly could choose the `id` on insert | Only reveals whether a random UUID exists | Accepted; UUIDs are not guessable |
+
+## Book club follow-up
+
+The book club adds the first table other people can read, so it was checked separately:
+
+- `shared_books` select is `using (true)` for `authenticated` only; signed-out visitors read nothing. Shelves and notes keep their owner-only policies.
+- Insert checks `user_id` is yours and `book_id` is on your shelf. A trigger copies the title, authors and cover from your saved book, so a share can't claim a book you don't have or show a made-up title.
+- No update policy; delete only your own.
+
+| Finding | Impact | Action |
+|---|---|---|
+| A direct API call could set `created_at` and pin a share to the top of the feed | Feed ordering only | Trigger now sets `created_at = now()` (migration `20261026203000`) |
+| `display_name` is whatever the sharer types | A person could pick a misleading name; it can't act as anyone else | Accepted; shown as a nickname |
+| Every signed-in user can read sharers' Clerk user ids | Ids are not secret and grant nothing | Accepted; needed to show "Shared by you" |

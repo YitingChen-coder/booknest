@@ -6,14 +6,15 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border bg-surface/80 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="font-serif text-xl font-semibold tracking-tight">
+        <Link href="/" className="shrink-0 font-serif text-xl font-semibold tracking-tight">
           BookNest
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm sm:gap-3">
+        <nav className="flex items-center gap-0.5 text-sm sm:gap-3">
           <Show when="signed-in">
             <NavLink href="/search">Search</NavLink>
             <NavLink href="/shelf">My shelf</NavLink>
+            <NavLink href="/club">Book club</NavLink>
             <UserButton />
           </Show>
           <Show when="signed-out">
