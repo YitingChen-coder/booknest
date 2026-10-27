@@ -1,6 +1,8 @@
 # booknest
 A full-stack book discovery and personal library app built with Next.js, Clerk, Supabase, and Open Library API.
 
+Live: https://booknest-two-eta.vercel.app
+
 ## Tech stack
 
 - Next.js + Tailwind CSS
