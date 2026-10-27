@@ -12,8 +12,11 @@ async function signInAs(page: Page, emailAddress: string) {
 /** Removes the books this person can remove. Stops if a removal doesn't shrink the shelf. */
 async function emptyShelf(page: Page) {
   await page.goto("/shelf");
+  const heading = page.getByRole("heading", { name: "My shelf" });
   const books = page.getByTestId("shelf-book");
   for (let i = 0; i < 20; i++) {
+    // Wait for the real page, not the loading skeleton, before counting.
+    await expect(heading).toBeVisible();
     const before = await books.count();
     if (before === 0) return;
     await books.first().getByRole("link").nth(1).click();

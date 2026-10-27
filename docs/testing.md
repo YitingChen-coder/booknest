@@ -38,3 +38,7 @@ Migration `20261025163000_restore_saved_books_select_policy.sql` put the owner-o
 ✓  [chromium] › e2e/shelf-isolation.spec.ts › a signed-out visitor sees no shelf
 4 passed
 ```
+
+## Against the deployed site
+
+`E2E_BASE_URL=https://booknest-two-eta.vercel.app npx playwright test`: 4 passed. The first run failed because the live site is slower, so the test counted books while the loading skeleton was still showing and skipped emptying the shelf. `emptyShelf` now waits for the "My shelf" heading before counting.

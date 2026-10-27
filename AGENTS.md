@@ -93,4 +93,4 @@ saved_books (user_id = user_123) ── 1 : many ──▶ book_notes (user_id =
 - [x] Step 5: Supabase + RLS, connected to Clerk (project `cuolcyayyklstyzbjmpb`, Clerk third-party auth)
 - [x] Step 6: Search + subject browsing + shelf UI; Open Library called from server components
 - [x] Step 7: Playwright two-user test (fail first, then pass; see `docs/testing.md`)
-- [ ] Step 8: `/security-review` (done, see `docs/security-review.md`), merge, deploy on Vercel
+- [x] Step 8: `/security-review` (see `docs/security-review.md`), deployed on Vercel: https://booknest-two-eta.vercel.app (submitted from the `dev` branch, not merged to `main`)
