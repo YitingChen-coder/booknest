@@ -2,8 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BookCover } from "@/components/book-cover";
+import { BookGridSkeleton } from "@/components/book-grid";
+import { BookSuggestions } from "@/components/book-suggestions";
 import { SaveButton } from "@/components/save-button";
-import { isSubject, PAGE_SIZE, searchBooks, SUBJECTS, type Subject } from "@/lib/open-library";
+import { getTrending, isSubject, PAGE_SIZE, searchBooks, SUBJECTS, type Subject } from "@/lib/open-library";
 import { getSavedIds } from "@/lib/shelf";
 
 type Props = { searchParams: Promise<{ q?: string; subject?: string; page?: string }> };
@@ -57,10 +59,13 @@ export default async function SearchPage({ searchParams }: Props) {
           <Results search={search} page={page} />
         </Suspense>
       ) : (
-        <p className="mt-10 text-muted">
-          Search by title or author, or pick a subject above to see its most highly rated books. Results come from
-          Open Library.
-        </p>
+        <section className="mt-10">
+          <h2 className="font-serif text-xl font-semibold">Trending on Open Library today</h2>
+          <p className="mt-1 text-sm text-muted">Not sure where to start? These are the books people are opening most today.</p>
+          <Suspense fallback={<BookGridSkeleton count={14} label="Loading trending books" />}>
+            <BookSuggestions load={() => getTrending(14)} unavailable="Open Library’s trending list isn’t available right now. You can still search above." />
+          </Suspense>
+        </section>
       )}
     </div>
   );

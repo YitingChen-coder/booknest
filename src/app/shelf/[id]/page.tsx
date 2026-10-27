@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { addNote, deleteNote } from "@/app/actions";
 import { BookCover } from "@/components/book-cover";
+import { BookGridSkeleton } from "@/components/book-grid";
+import { BookSuggestions } from "@/components/book-suggestions";
 import { BookControls } from "@/components/book-controls";
 import { RemoveBookButton } from "@/components/remove-book-button";
 import { formatDate } from "@/lib/format";
-import { getWorkDetails } from "@/lib/open-library";
+import { getAuthorBooks, getWorkDetails } from "@/lib/open-library";
 import { getSavedBook, listNotes } from "@/lib/shelf";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -98,6 +100,18 @@ export default async function BookPage({ params }: PageProps<"/shelf/[id]">) {
           </ul>
         )}
       </section>
+
+      {book.authors[0] && (
+        <section className="mt-12">
+          <h2 className="font-serif text-xl font-semibold">More by {book.authors[0]}</h2>
+          <Suspense fallback={<BookGridSkeleton count={5} label={`Loading more books by ${book.authors[0]}`} />}>
+            <BookSuggestions
+              load={() => getAuthorBooks(book.authors[0], book.work_key, 5)}
+              unavailable="Open Library isn’t responding right now, so we can’t show more by this author."
+            />
+          </Suspense>
+        </section>
+      )}
 
       <div className="mt-12 border-t border-border pt-6">
         <RemoveBookButton bookId={book.id} title={book.title} />

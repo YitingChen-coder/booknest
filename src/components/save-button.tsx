@@ -7,9 +7,11 @@ import { saveBook, type SaveBookInput } from "@/app/actions";
 type Props = {
   book: SaveBookInput;
   savedId: string | null;
+  /** Shorter labels for narrow cards. */
+  compact?: boolean;
 };
 
-export function SaveButton({ book, savedId: initialSavedId }: Props) {
+export function SaveButton({ book, savedId: initialSavedId, compact = false }: Props) {
   const [savedId, setSavedId] = useState(initialSavedId);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -20,7 +22,7 @@ export function SaveButton({ book, savedId: initialSavedId }: Props) {
         href={`/shelf/${savedId}`}
         className="inline-flex items-center gap-1 rounded-md bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent"
       >
-        ✓ On your shelf
+        {compact ? "✓ Saved" : "✓ On your shelf"}
       </Link>
     );
   }
@@ -29,6 +31,7 @@ export function SaveButton({ book, savedId: initialSavedId }: Props) {
     <div className="flex flex-col items-start gap-1">
       <button
         type="button"
+        aria-label={compact ? `Save ${book.title} to shelf` : undefined}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -40,7 +43,7 @@ export function SaveButton({ book, savedId: initialSavedId }: Props) {
         }
         className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Save to shelf"}
+        {pending ? "Saving…" : compact ? "Save" : "Save to shelf"}
       </button>
       {error && (
         <p role="alert" className="text-xs text-danger">

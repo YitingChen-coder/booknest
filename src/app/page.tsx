@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import { Suspense } from "react";
 import { BookCover } from "@/components/book-cover";
+import { BookGrid, BookGridSkeleton } from "@/components/book-grid";
+import { BookSuggestions } from "@/components/book-suggestions";
+import { getTrending } from "@/lib/open-library";
 import { getShelfStats, listShelf, STATUS_LABELS, STATUSES } from "@/lib/shelf";
 
 export default async function Home() {
@@ -11,22 +15,29 @@ export default async function Home() {
 function Landing() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24">
-      <p className="text-sm font-medium uppercase tracking-widest text-accent">Your reading shelf</p>
-      <h1 className="mt-3 max-w-2xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-        Find your next book. Keep track of every one you love.
-      </h1>
-      <p className="mt-5 max-w-xl text-lg text-muted">
-        Search millions of titles from Open Library, save them to your shelf, mark what you want to read, are reading,
-        and have finished, and jot down notes as you go.
-      </p>
+      <div className="flex items-center justify-between gap-10">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-widest text-accent">Your reading shelf</p>
+          <h1 className="mt-3 max-w-2xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+            Find your next book. Keep track of every one you love.
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-muted">
+            Search millions of titles from Open Library, save them to your shelf, mark what you want to read, are reading,
+            and have finished, and jot down notes as you go.
+          </p>
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/sign-up" className="rounded-lg bg-accent px-5 py-2.5 font-medium text-background hover:opacity-90">
-          Create a free account
-        </Link>
-        <Link href="/sign-in" className="rounded-lg border border-border px-5 py-2.5 font-medium hover:bg-accent-soft">
-          I already have one
-        </Link>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/sign-up" className="rounded-lg bg-accent px-5 py-2.5 font-medium text-background hover:opacity-90">
+              Create a free account
+            </Link>
+            <Link href="/sign-in" className="rounded-lg border border-border px-5 py-2.5 font-medium hover:bg-accent-soft">
+              I already have one
+            </Link>
+          </div>
+        </div>
+        <Suspense fallback={null}>
+          <HeroCovers />
+        </Suspense>
       </div>
 
       <ul className="mt-16 grid gap-4 sm:grid-cols-3">
@@ -45,8 +56,34 @@ function Landing() {
   );
 }
 
+/** A few of today's trending covers next to the landing headline. Hidden if Open Library is down. */
+async function HeroCovers() {
+  const result = await getTrending(24);
+  const books = result.ok ? result.books.filter((b) => b.coverId).slice(0, 6) : [];
+  if (books.length < 6) return null;
+  return (
+    <div className="hidden shrink-0 lg:block" aria-hidden="true">
+      <div className="flex gap-3">
+        {[0, 1, 2].map((col) => (
+          // Middle column sits lower, like books on a shelf.
+          <div key={col} className={`flex flex-col gap-3 ${col === 1 ? "pt-8" : ""}`}>
+            {[books[col], books[col + 3]].map((book) => (
+              <BookCover key={book.workKey} coverId={book.coverId} title={book.title} />
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-right text-xs text-muted">Trending on Open Library today</p>
+    </div>
+  );
+}
+
 async function Overview() {
-  const [stats, reading] = await Promise.all([getShelfStats(), listShelf({ status: "reading", limit: 3 })]);
+  const [stats, reading, recent] = await Promise.all([
+    getShelfStats(),
+    listShelf({ status: "reading", limit: 3 }),
+    listShelf({ limit: 6 }),
+  ]);
   const year = new Date().getFullYear();
 
   return (
@@ -116,14 +153,37 @@ async function Overview() {
         )}
       </section>
 
-      <div className="mt-10 flex flex-wrap gap-3">
-        <Link href="/search" className="rounded-lg bg-accent px-5 py-2.5 font-medium text-background hover:opacity-90">
-          Find books
-        </Link>
-        <Link href="/shelf" className="rounded-lg border border-border px-5 py-2.5 font-medium hover:bg-accent-soft">
-          Open my shelf
-        </Link>
-      </div>
+      {recent.length > 0 && (
+        <section className="mt-10">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="font-serif text-xl font-semibold">Recently added</h2>
+            <Link href="/shelf" className="text-sm font-medium text-accent">
+              Open my shelf
+            </Link>
+          </div>
+          <BookGrid
+            items={recent.map((book) => ({
+              key: book.id,
+              title: book.title,
+              authors: book.authors,
+              coverId: book.cover_id,
+              href: `/shelf/${book.id}`,
+            }))}
+          />
+        </section>
+      )}
+
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-serif text-xl font-semibold">Trending on Open Library today</h2>
+          <Link href="/search" className="text-sm font-medium text-accent">
+            Search for more
+          </Link>
+        </div>
+        <Suspense fallback={<BookGridSkeleton label="Loading trending books" />}>
+          <BookSuggestions load={() => getTrending(6)} unavailable="Open Library’s trending list isn’t available right now." />
+        </Suspense>
+      </section>
     </div>
   );
 }

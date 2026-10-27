@@ -40,6 +40,14 @@ Returns `title`, `description`, `covers`, `subjects`, `first_publish_date`, `aut
 `description` is either a plain string or `{ "type": "/type/text", "value": "..." }`; handle both.
 An unknown work id returns HTTP 404.
 
+## Trending: `GET https://openlibrary.org/trending/daily.json?limit=14`
+
+The works people opened most today, under `works` (same fields as search `docs`: `key`, `title`, `author_name`, `cover_i`, `first_publish_year`). Used on the landing page covers, the empty search page and the signed-in home. About 36 KB for 12 works.
+
+## More by an author: `GET https://openlibrary.org/search.json?author=Ursula+K.+Le+Guin&sort=rating`
+
+Same response as search. Used on the book page; the current book is filtered out.
+
 ## Failure cases to design for
 
 - Network error / timeout / HTTP 5xx → "Open Library is unavailable" state with retry.
