@@ -60,7 +60,9 @@ test("a shared book shows in the club, but the sharer's shelf and notes stay pri
   // B sees the share in the club, with A's comment but not A's note.
   await pageB.goto("/club");
   const card = pageB.getByTestId("club-share").filter({ hasText: comment });
-  await expect(card, "B can't see A's shared book in the club").toBeVisible();
+  // Streamed pages can briefly hold a second, hidden copy; wait for exactly one.
+  await expect(card, "B can't see A's shared book in the club").toHaveCount(1);
+  await expect(card).toBeVisible();
   await expect(card).toContainText(title);
   await expect(card).toContainText("Shared by Reader A");
   await expect(card.getByRole("button", { name: "Stop sharing" }), "B can remove A's share").toHaveCount(0);
